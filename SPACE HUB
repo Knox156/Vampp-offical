@@ -1,0 +1,80 @@
+--// Space Hub | Muscle Legends
+repeat wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+--// SETTINGS
+getgenv().AutoStrength = true
+getgenv().AutoKill = true
+getgenv().AutoRebirth = true
+getgenv().ServerHopAfterKills = true
+getgenv().KillsBeforeHop = 10
+
+local killCount = 0
+
+--// Anti AFK
+pcall(function()
+    for _,v in pairs(getconnections(LocalPlayer.Idled)) do
+        v:Disable()
+    end
+end)
+
+--// Auto Strength
+task.spawn(function()
+    while task.wait(0.1) do
+        if getgenv().AutoStrength then
+            pcall(function()
+                ReplicatedStorage.Remotes.Punch:FireServer()
+            end)
+        end
+    end
+end)
+
+--// Auto Rebirth
+task.spawn(function()
+    while task.wait(2) do
+        if getgenv().AutoRebirth then
+            pcall(function()
+                ReplicatedStorage.Remotes.Rebirth:FireServer()
+            end)
+        end
+    end
+end)
+
+--// Auto Kill (Closest Player)
+task.spawn(function()
+    while task.wait(0.3) do
+        if not getgenv().AutoKill then continue end
+
+        pcall(function()
+            for _,plr in pairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    Character:MoveTo(plr.Character.HumanoidRootPart.Position + Vector3.new(0,0,2))
+                    ReplicatedStorage.Remotes.Punch:FireServer()
+                end
+            end
+        end)
+    end
+end)
+
+--// Kill Detection
+ReplicatedStorage.Remotes.Kill.OnClientEvent:Connect(function()
+    killCount += 1
+    print("Kills:", killCount)
+
+    if getgenv().ServerHopAfterKills and killCount >= getgenv().KillsBeforeHop then
+        task.wait(1)
+        TeleportService:Teleport(game.PlaceId, LocalPlayer)
+    end
+end)
+
+--// Notification
+game.StarterGui:SetCore("SendNotification", {
+    Title = "Space Hub",
+    Text = "Muscle Legends Loaded",
+    Duration = 5
+})
